@@ -1,0 +1,23 @@
+# Данные (тяжелые)
+data_clean/
+data/train/
+data/valid/
+data/test/
+datasets/
+
+# Результаты обучения и веса
+runs/
+*.pt
+mlflow.db
+*.db
+
+# Кэш и системные файлы
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+venv/
+.venv/
+
+# Результаты E0
+results/e0_predictions/
+mlruns/
