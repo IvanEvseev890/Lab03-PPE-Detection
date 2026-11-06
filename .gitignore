@@ -17,6 +17,7 @@ __pycache__/
 .ipynb_checkpoints/
 venv/
 .venv/
+*.pyc
 
 # Результаты E0
 results/e0_predictions/

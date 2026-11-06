@@ -1,88 +1,79 @@
-# PPE Detection for Construction Site Safety using YoloV8
-![Alt text](assets/videoconstruc2.gif)
-> 4,764 workers died on the job in 2020 (3.4 per 100,000 full-time equivalent workers). Workers in transportation and material moving occupations and construction and extraction occupations accounted for nearly half of all fatal occupational injuries (47.4 percent), representing 1,282 and 976 workplace deaths, respectively. 
->
-> *Occupational Safety and Health Administration (US Department of Labour)*
+# Лабораторная работа №3. Промышленная видеоаналитика: обнаружение СИЗ с YOLOv8
 
+**Дисциплина:** «Введение в искусственный интеллект» (ПетрГУ, 2026)
+**Ветка Git:** lab/03-ppe
+**Формат сдачи:** запрос на слияние (PR) + отчёт + защита
 
-## Introduction
+## 1. Описание проекта
 
-There have been various accidents in construction sites, due to the lack of safety equipments for workers. The aim of this project was to detect PPE on a worker, which can be further used for tracking and triggerring alarm (safety monitoring) in future. We use the dataset provided by Roboflow on [**Construction Site Safety Image Dataset**](https://universe.roboflow.com/roboflow-universe-projects/construction-site-safety). 
+Адаптация модели обнаружения объектов YOLOv8 для поиска средств индивидуальной защиты (СИЗ) на строительной площадке. В ходе работы была найдена и исправлена утечка данных исходного датасета, обучены две конфигурации модели (E1 и E2), проведена оценка метрик качества, анализ ошибок и системная оценка задержки на CPU.
 
-For easier use the dataset is already uploaded here: [**Kaggle Dataset**](https://www.kaggle.com/datasets/snehilsanyal/construction-site-safety-image-dataset-roboflow).
+## 2. Оборудование и окружение
 
-The dataset consists of 2801 image samples with labels in YoloV8 format. These images are split into `train: 2605`, `valid: 114` and `test: 82` sets. Each folder consists of `images` and `labels` folders.
+- ОС: Windows
+- Процессор (CPU): AMD Ryzen 5 7500F (обучение и инференс проводились на CPU, без использования GPU)
+- Python: 3.13 (путь: C:\Users\Admin\AppData\Local\Programs\Python\Python313\python.exe)
+- Библиотеки: ultralytics, torch (CPU-версия), opencv-python, psutil и др. (см. requirements.txt)
+- Время обучения: E1 — 3.456 часа, E2 — 5.039 часа
 
-There are 10 classes to detect from the dataset: 
+## 3. Установка
 
-**'Hardhat', 'Mask', 'NO-Hardhat', 'NO-Mask', 'NO-Safety Vest', 'Person', 'Safety Cone', 'Safety Vest', 'machinery', 'vehicle'**
+1. Клонируйте репозиторий и перейдите в папку проекта.
+2. Установите зависимости (команда для PowerShell с обходом SSL, если он блокируется):
 
+& "C:\Users\Admin\AppData\Local\Programs\Python\Python313\python.exe" -m pip install -r requirements.txt --trusted-host pypi.org --trusted-host files.pythonhosted.org
 
-![](assets/ppe.webp)
+## 4. Данные
 
+Исходные изображения не хранятся в репозитории (согласно правилам сдачи).
 
-## Setup
+- Источник: Roboflow Construction Site Safety v28 (лицензия CC BY 4.0)
+- Скачать: https://www.kaggle.com/datasets/snehilsanyal/construction-site-safety-image-dataset-roboflow
+- Распакуйте данные в папку data/ (структура: train/images, train/labels, valid/, test/)
+- Скрипт resplit_data.py создаст чистый датасет data_clean/ с групповым разбиением (без утечки)
 
-The code was run on Kaggle, with a P100 GPU. We installed the `ultralytics` library by [**Ultralytics**](https://docs.ultralytics.com) to run YoloV8 custom object detection on the dataset.
+## 5. Команды запуска
 
-For more information check out this notebook: [**Check yo'self before you wreck yo'self - CSS EDA**](https://www.kaggle.com/code/snehilsanyal/check-yo-self-before-you-wreck-yo-self-css-eda). 
+Вместо <python> используйте: & "C:\Users\Admin\AppData\Local\Programs\Python\Python313\python.exe"
 
-**Note:** This repository contains all the results, visualizations and best model after custom training on the dataset.
+### 5.1. Подготовка данных и проверки
 
-## File Hierarchy
+- <python> check_leakage.py — проверка утечки в исходных данных
+- <python> resplit_data.py — пересборка датасета (групповое разбиение)
 
-1. `data` folder consists of the yaml file required for training. It also contains 3 folders `train`, `valid` and `test`. Each of these folders have 2 subfolders `images` (with .jpg files) and `labels` (with .txt annotations).
-2. `results` folder consists of the prediction results of the model, confusion matrix plot, visualizations of the train and valid batches and PR curves.
-3. `models` folder consists of 2 models, `yolov8n.pt` which is the pre-trained model on COCO128.yaml and `best.pt` which is the custom trained yolov8n model on our dataset.
-4. `source_files` folder consists of videos and images for evaluation of our custom trained model.
-5. `output` folder consists of output produced by our custom object detection model after 100 epochs of training.
+### 5.2. Эксперименты (Обучение)
 
+- <python> e0_test.py — E0: проверка предобученной модели (zero-shot, yolov8n.pt)
+- <python> train_e1.py — E1: базовое обучение (imgsz=640, batch=16, 50 эпох)
+- <python> train_e2.py — E2: обучение с гипотезой (imgsz=800, batch=8, 50 эпох)
 
+### 5.3. Оценка и анализ
 
-## Code
+- <python> evaluate.py runs/detect/runs/ppe/e1-opora-3/weights/best.pt E1_Base
+- <python> evaluate.py runs/detect/runs/ppe/e2-imgsz800/weights/best.pt E2_imgsz800
+- <python> visualize_errors.py — сбор галерей ошибок (FP, FN, Low IoU, Confusion, Occluded, Label Errors)
+- <python> latency_stats.py — расчет медианы и 95-го процентиля задержки (end-to-end)
+- <python> system_eval.py — системная оценка (память, FPS, устойчивость к освещению, правило отказа)
 
-```
-├───.ipynb_checkpoints
-├───assets
-├───data
-├───├──data.yaml
-├───├──ppe_data.yaml
-│   ├───test
-│   │   ├───images
-│   │   └───labels
-│   ├───train
-│   │   ├───images
-│   │   └───labels
-│   └───valid
-│       ├───images
-│       └───labels
-├───models
-├───output
-│   └───output_yolov8n_100e
-├───results
-└───source_files
-```
+### 5.4. Минимальные тесты
 
-## Results
+- <python> test_basic.py — проверка путей, координат, хэшей, визуализатора и схемы вывода модели
 
-The training of YoloV8n model was done for 100 epochs and was completed in 2.719 hours. After training, we get the following results:
+## 6. Результаты (Тестовая выборка 553 изображения)
 
-![Alt text](results/confusion_matrix.png)
+| Эксперимент | imgsz | batch | mAP@0.5 (val) | mAP@0.5 (test) | mAP@0.5:0.95 (test) | Задержка (медиана) | Время обучения |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| E1 (Базовая) | 640 | 16 | 0.748 | 0.7206 | 0.4675 | 29.68 мс | 3.456 ч |
+| E2 (Гипотеза) | 800 | 8 | 0.770 | 0.7442 | 0.4859 | 41.82 мс | 5.039 ч |
 
-![Alt text](results/train_batch14672.jpg)
+Подробный анализ метрик, матрицы ошибок, PR-кривые и разбор 10+ примеров ошибок см. в reports/lab03-report.md. Паспорт данных см. в data/README.md.
 
-![Alt text](results/val_batch2_pred.jpg)
+## 7. Использование ИИ-инструментов
 
-![Alt text](results/results.png)
+В соответствии с требованиями дисциплины, при выполнении работы применялись LLM (Qwen/DeepSeek) через веб-интерфейс.
 
-## Outputs
-
-![Alt text](output/output_yolov8n_100e/construction-safety.jpg)
-![Alt text](output/output_yolov8n_100e/portrait-of-woman-with-mask-and-man-with-safety-glasses-on-a-construction-HX01FH.jpg)
-![Alt text](output/output_yolov8n_100e/two-young-construction-workers-wearing-555864.jpg)
-## Future Work
-
-1. Train the model for more epochs.
-2. Compare with 4 other models by YoloV8.
-3. Create ID tracking of workers and save bounding boxes of workers not wearing proper PPE.
-4. ML App deployment with alarm trigerring.
+1. Инструмент и задача: Использовался для генерации и отладки скриптов (check_leakage.py, resplit_data.py, visualize_errors.py, latency_stats.py, system_eval.py), поиска ошибок в логике (утечка данных, размерности тензоров в Ultralytics), генерации текста для отчетов и README.
+2. Существенная часть запроса: Запросы содержали фрагменты кода, описания ошибок (например, IndexError при работе с тензорами) и требования к метрикам из методички. Персональные и закрытые данные не передавались.
+3. Какие предложения приняты/изменены: Приняты предложения по логике группировки данных и архитектуре галерей ошибок. Изменены пороги для правила отказа (с 0.6 на 0.4) и формулы для расчета статистики задержки.
+4. Как проверено: Все сгенерированные скрипты запущены локально. Метрики получены путем реального обучения на CPU (3.4 и 5.0 часов), а не выдуманы. Код проверен на наличие логических ошибок (например, правило < 1024 пикселей для малых объектов).
+5. Известные риски: Сгенерированный код может содержать неоптимальные конструкции, поэтому проводилась ручная проверка на соответствие требованиям Ultralytics. Риск утечки данных отсутствует (использован только публичный датасет CC BY 4.0).
