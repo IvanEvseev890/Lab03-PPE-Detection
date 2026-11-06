@@ -4,6 +4,7 @@ data/train/
 data/valid/
 data/test/
 datasets/
+results/error_galleries/
 
 # Результаты обучения и веса
 runs/
